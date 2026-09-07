@@ -152,6 +152,7 @@ export const renderPreview = (
     '{dist}': '0' + dec + '8',
     '{dist_unit}': isImperial ? 'MI' : 'KM',
     '{hr}': '72',
+    '{icu_stats}': '24.3KM 58HRV',
     '{batt}': '85',
     // Solar / weather (PKJS-side)
     '{sunrise}': '6:42',

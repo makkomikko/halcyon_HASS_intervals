@@ -1,18 +1,27 @@
-var USE_LOCAL_CONFIG = false;
-var configDataUri = 'https://halcyon.freakified.net/';
-var configLocalUri = 'http://10.25.219.23:3000/index.html';
+var UPSTREAM_CONFIG_URI = 'https://halcyon.freakified.net/';
+// Host config-static/index.html on GitHub Pages, Netlify, etc.
+// Example: 'https://yourname.github.io/halcyon/config-static/index.html'
+var SETUP_CONFIG_URI = '';
+var USE_LOCAL_SETUP = false;
+var SETUP_LOCAL_URI = 'http://localhost:8080/index.html';
+
+// Dev fallback only — prefer the setup page SETTING_INTERVALS_API_KEY field.
+var FALLBACK_INTERVALS_API_KEY = '';
 
 var SunCalc = require('./suncalc');
 var Weather = require('./weather');
+var Intervals = require('./intervals');
 var Languages = require('./languages');
 var Cities = require('./cities');
 
 // Cached data (in-memory; also persisted to localStorage)
 var cachedWeather = null;
 var cachedSolar = null;
+var cachedIntervals = null;
 var cachedSettings = null;
 
 var TIME_FORMAT_STORAGE_KEY = 'halcyonIs24h';
+var INTERVALS_API_KEY_STORAGE_KEY = 'halcyonIntervalsApiKey';
 var DEFAULT_ALT_CITY = 'TOKYO';
 var DEFAULT_ALT_CITY2 = 'UTC';
 var ALT_LABEL_MAX_LENGTH = 6;
@@ -59,6 +68,8 @@ var WEATHER_WIDGET_TOKENS = [
   '{wind_unit}', '{wind_dir}'
 ];
 
+var INTERVALS_WIDGET_TOKENS = ['{icu_stats}'];
+
 function getDefaultWidgets() {
   var defaults = {};
   Object.keys(DEFAULT_WIDGETS).forEach(function (key) {
@@ -88,6 +99,58 @@ function settingsUseWeather(settings) {
       return fmt.indexOf(token) !== -1;
     });
   });
+}
+
+function settingsUseIntervals(settings) {
+  var defaultWidgets = getDefaultWidgets();
+  settings = settings || {};
+
+  return WIDGET_SLOT_KEYS.some(function (key) {
+    var fmt = settings[key];
+    if (fmt === undefined || fmt === null) {
+      fmt = defaultWidgets[key];
+    }
+    if (!fmt) return false;
+
+    return INTERVALS_WIDGET_TOKENS.some(function (token) {
+      return fmt.indexOf(token) !== -1;
+    });
+  });
+}
+
+function readStoredIntervalsApiKey() {
+  try {
+    var key = localStorage.getItem(INTERVALS_API_KEY_STORAGE_KEY);
+    if (key && typeof key === 'string') {
+      return key.trim();
+    }
+  } catch (e) { }
+  return '';
+}
+
+function saveStoredIntervalsApiKey(key) {
+  if (!key || typeof key !== 'string' || !key.trim()) {
+    return;
+  }
+  try {
+    localStorage.setItem(INTERVALS_API_KEY_STORAGE_KEY, key.trim());
+  } catch (e) { }
+}
+
+function getIntervalsApiKey(settings) {
+  settings = settings || {};
+  var key = settings.SETTING_INTERVALS_API_KEY;
+  if (key && typeof key === 'string' && key.trim()) {
+    return key.trim();
+  }
+  key = readStoredIntervalsApiKey();
+  if (key) {
+    return key;
+  }
+  if (FALLBACK_INTERVALS_API_KEY && typeof FALLBACK_INTERVALS_API_KEY === 'string') {
+    return FALLBACK_INTERVALS_API_KEY.trim();
+  }
+  return '';
 }
 
 // ---- Time helpers ----
@@ -151,7 +214,7 @@ function applyAltCityMessage(msg, settings, cityKey, labelKey, messageLabelKey, 
  * JS-side tokens with their current values and returns the result.
  * Unknown tokens (e.g. {date}, {steps}) are left untouched for the C side.
  */
-function applyJsTokens(formatStr, weather, solar, isImperial, use24h, lang) {
+function applyJsTokens(formatStr, weather, solar, intervals, isImperial, use24h, lang) {
   if (!formatStr) return formatStr;
 
   var L = Languages.getLang(lang);
@@ -206,6 +269,11 @@ function applyJsTokens(formatStr, weather, solar, isImperial, use24h, lang) {
     });
   }
 
+  // Intervals.icu combined stats token
+  if (result.indexOf('{icu_stats}') !== -1) {
+    result = result.replace('{icu_stats}', Intervals.formatStats(intervals));
+  }
+
   // Universal translation token substitution {t:KEY}
   result = result.replace(/\{t:([A-Z_]+)\}/g, function (match, key) {
     return L.labels[key] || match;
@@ -227,11 +295,17 @@ function sendDataToWatch() {
   var lang = settings.SETTING_LANGUAGE || 0;
   var use24h = cachedIs24h;
   var weather = Weather.isDisplayable(cachedWeather) ? cachedWeather : null;
+  var intervals = Intervals.isDisplayable(cachedIntervals) ? cachedIntervals : null;
   var defaultWidgets = getDefaultWidgets();
 
   if (cachedWeather && !weather) {
     cachedWeather = null;
     Weather.clear();
+  }
+
+  if (cachedIntervals && !intervals) {
+    cachedIntervals = null;
+    Intervals.clear();
   }
 
   var msg = {};
@@ -244,7 +318,7 @@ function sendDataToWatch() {
     }
     if (fmt !== undefined && fmt !== null) {
       // Apply JS tokens; C tokens pass through untouched
-      var processed = applyJsTokens(fmt, weather, cachedSolar, isImperial, use24h, lang);
+      var processed = applyJsTokens(fmt, weather, cachedSolar, intervals, isImperial, use24h, lang);
       msg[key] = processed;
     }
   });
@@ -268,6 +342,34 @@ function sendDataToWatch() {
   Pebble.sendAppMessage(msg,
     function () { console.log('Data sent to watch successfully'); },
     function (e) { console.log('Error sending data to watch: ' + JSON.stringify(e)); }
+  );
+}
+
+function fetchIntervalsIfNeeded() {
+  if (!settingsUseIntervals(cachedSettings)) {
+    console.log('No intervals widgets configured; skipping intervals fetch');
+    return;
+  }
+
+  var apiKey = getIntervalsApiKey(cachedSettings);
+  if (!apiKey) {
+    console.log('No intervals API key configured; skipping intervals fetch');
+    return;
+  }
+
+  if (Intervals.isFresh(cachedIntervals)) {
+    console.log('Intervals cache still fresh; skipping fetch');
+    return;
+  }
+
+  Intervals.fetch(apiKey,
+    function (data) {
+      cachedIntervals = data;
+      sendDataToWatch();
+    },
+    function (reason) {
+      console.log('Intervals fetch error: ' + reason);
+    }
   );
 }
 
@@ -327,6 +429,7 @@ function locationSuccess(pos) {
 
   // Send to watch immediately (even before weather)
   sendDataToWatch();
+  fetchIntervalsIfNeeded();
 
   if (!settingsUseWeather(cachedSettings)) {
     console.log('No weather widgets configured; skipping weather fetch');
@@ -364,18 +467,16 @@ function getLocation() {
 Pebble.addEventListener('ready', function (e) {
   console.log('PebbleKit JS ready');
 
-  // Restore cached weather/solar from previous session
+  // Restore cached weather/solar/intervals from previous session
   cachedWeather = Weather.restore();
+  cachedIntervals = Intervals.restore();
   var savedSolar = localStorage.getItem('halcyonSolar');
   if (savedSolar) {
     try { cachedSolar = JSON.parse(savedSolar); } catch (e) { }
   }
 
   // Restore settings
-  var savedSettings = localStorage.getItem('halcyonSettings');
-  if (savedSettings) {
-    try { cachedSettings = JSON.parse(savedSettings); } catch (e) { }
-  }
+  cachedSettings = loadPersistedSettings();
 
   // If we have cached data, send it immediately so the watch has something
   // (uses defaults if no settings configured yet)
@@ -383,6 +484,7 @@ Pebble.addEventListener('ready', function (e) {
 
   // Then kick off a fresh location + weather fetch
   getLocation();
+  fetchIntervalsIfNeeded();
 });
 
 // ---- Watch-initiated heartbeat ----
@@ -402,15 +504,13 @@ Pebble.addEventListener('appmessage', function (e) {
     // Fresh heartbeat from the watch — start a new backoff cycle.
     resetBackoff();
     getLocation();
+    fetchIntervalsIfNeeded();
   }
 });
 
 // ---- Configuration ----
 
-Pebble.addEventListener('showConfiguration', function () {
-  var url = USE_LOCAL_CONFIG ? configLocalUri : configDataUri;
-
-  var watchInfo = Pebble.getActiveWatchInfo();
+function appendConfigQueryParams(url, watchInfo, settings) {
   url += (url.indexOf('?') === -1 ? '?' : '&') + 'watchInfo=' + encodeURIComponent(JSON.stringify({
     platform: watchInfo.platform,
     model: watchInfo.model,
@@ -420,15 +520,62 @@ Pebble.addEventListener('showConfiguration', function () {
       minor: watchInfo.firmware.minor
     }
   }));
+  url += '&settings=' + encodeURIComponent(JSON.stringify(settings));
+  return url;
+}
 
+function appendSetupConfigQueryParams(url, watchInfo, settings) {
+  url = appendConfigQueryParams(url, watchInfo, settings);
+  url += '&fullConfigUri=' + encodeURIComponent(UPSTREAM_CONFIG_URI);
+  return url;
+}
+
+function loadPersistedSettings() {
+  var settings = {};
   var persistedSettings = localStorage.getItem('halcyonSettings');
   if (persistedSettings) {
     try {
-      var settings = JSON.parse(persistedSettings);
-      url += '&settings=' + encodeURIComponent(JSON.stringify(settings));
+      settings = JSON.parse(persistedSettings);
     } catch (e) {
       console.log('Error loading persisted settings:', e);
     }
+  }
+
+  var storedApiKey = readStoredIntervalsApiKey();
+  if (storedApiKey && !settings.SETTING_INTERVALS_API_KEY) {
+    settings.SETTING_INTERVALS_API_KEY = storedApiKey;
+  }
+
+  return settings;
+}
+
+function mergeIntervalsApiKey(configData, previousSettings) {
+  previousSettings = previousSettings || {};
+  configData = configData || {};
+
+  var previousKey = getIntervalsApiKey(previousSettings);
+  if (!configData.SETTING_INTERVALS_API_KEY && previousKey) {
+    configData.SETTING_INTERVALS_API_KEY = previousKey;
+  }
+
+  if (configData.SETTING_INTERVALS_API_KEY) {
+    saveStoredIntervalsApiKey(configData.SETTING_INTERVALS_API_KEY);
+  }
+
+  return configData;
+}
+
+Pebble.addEventListener('showConfiguration', function () {
+  var watchInfo = Pebble.getActiveWatchInfo();
+  var settings = loadPersistedSettings();
+
+  var url;
+  if (USE_LOCAL_SETUP) {
+    url = appendSetupConfigQueryParams(SETUP_LOCAL_URI, watchInfo, settings);
+  } else if (SETUP_CONFIG_URI) {
+    url = appendSetupConfigQueryParams(SETUP_CONFIG_URI, watchInfo, settings);
+  } else {
+    url = appendConfigQueryParams(UPSTREAM_CONFIG_URI, watchInfo, settings);
   }
 
   console.log('Opening Config URL: ' + url);
@@ -459,6 +606,8 @@ Pebble.addEventListener('webviewclosed', function (e) {
   if (configData.return_to) {
     delete configData.return_to;
   }
+
+  configData = mergeIntervalsApiKey(configData, cachedSettings);
 
   // Save to localStorage for persistence
   localStorage.setItem('halcyonSettings', JSON.stringify(configData));
@@ -502,7 +651,8 @@ Pebble.addEventListener('webviewclosed', function (e) {
   Object.keys(configData).forEach(function (key) {
     if (colorKeys.indexOf(key) === -1 && widgetKeys.indexOf(key) === -1 &&
       key !== 'SETTING_ALT_CITY' && key !== 'SETTING_ALT_LABEL' &&
-      key !== 'SETTING_ALT_CITY2' && key !== 'SETTING_ALT_LABEL2') {
+      key !== 'SETTING_ALT_CITY2' && key !== 'SETTING_ALT_LABEL2' &&
+      key !== 'SETTING_INTERVALS_API_KEY') {
       var value = configData[key];
       if (typeof value === 'boolean') {
         dict[key] = value ? 1 : 0;
@@ -523,4 +673,5 @@ Pebble.addEventListener('webviewclosed', function (e) {
 
   // Now apply Pass 1 to widget strings and send them with current weather/solar data
   sendDataToWatch();
+  fetchIntervalsIfNeeded();
 });

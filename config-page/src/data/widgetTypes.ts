@@ -42,6 +42,8 @@ const WIDGET_TEMPLATES: WidgetOptionTemplate[] = [
   { value: '{steps} {t:STEPS}', label: 'Steps', category: 'Health' },
   { value: '{dist} {dist_unit}', label: 'Distance Walked', category: 'Health' },
   { value: '{hr} {t:BPM}', label: 'Current Heart Rate', category: 'Health' },
+  // Intervals.icu
+  { value: '{icu_stats}', label: 'Intervals.icu Stats', category: 'Intervals.icu' },
   // Device
   { value: '{t:BATTERY} {batt}%', label: 'Battery %', category: 'Device' },
   // Weather
@@ -90,6 +92,7 @@ export const WIDGET_TOKENS: WidgetToken[] = [
   { token: '{dist}', label: 'Distance', category: 'Health & Device', requires: 'health' },
   { token: '{dist_unit}', label: 'Dist. Unit', category: 'Health & Device', requires: 'health' },
   { token: '{hr}', label: 'Heart Rate', category: 'Health & Device', requires: 'hrm' },
+  { token: '{icu_stats}', label: 'Intervals.icu Stats', category: 'Intervals.icu' },
   { token: '{batt}', label: 'Battery', category: 'Health & Device' },
   { token: '{temp}', label: 'Temp', category: 'Weather' },
   { token: '{thi}', label: 'High', category: 'Weather' },
@@ -114,6 +117,10 @@ export const ALT_TIMEZONE2_WIDGET_IDS = ['alt_tz2', 'alt_tz2_label', 'alt_tz2_ti
 export const WEATHER_WIDGET_IDS = WIDGET_TOKENS.filter((token) => token.category === 'Weather').map(
   (token) => token.token,
 );
+
+export const INTERVALS_WIDGET_IDS = WIDGET_TOKENS.filter(
+  (token) => token.category === 'Intervals.icu',
+).map((token) => token.token);
 
 const normalizeWidgetTokenId = (id: WidgetTokenId) =>
   id.startsWith('{') && id.endsWith('}') ? id : `{${id}}`;

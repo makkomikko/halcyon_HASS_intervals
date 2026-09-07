@@ -9,6 +9,7 @@ interface TextInputProps {
   messageKey: keyof Settings;
   value?: string;
   maxLength?: number;
+  type?: React.HTMLInputTypeAttribute;
   normalizeValue?: (value: string) => string;
   spellCheck?: boolean;
   className?: string;
@@ -20,6 +21,7 @@ export const TextInput: React.FC<TextInputProps> = ({
   messageKey,
   value: controlledValue,
   maxLength,
+  type = 'text',
   normalizeValue,
   spellCheck = true,
   className = '',
@@ -38,6 +40,7 @@ export const TextInput: React.FC<TextInputProps> = ({
       <input
         id={inputId}
         className="halite-input"
+        type={type}
         value={value}
         maxLength={maxLength}
         onChange={(event) => {

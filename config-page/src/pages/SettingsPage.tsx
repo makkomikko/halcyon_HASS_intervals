@@ -6,6 +6,7 @@ import {
   Toggle,
   ColorPicker,
   Select,
+  TextInput,
   ThemePicker,
   CustomThemePanel,
   WidgetSelector,
@@ -246,6 +247,16 @@ export const SettingsPage: React.FC = () => {
           />
         </Section>
       )}
+
+      <Section title="Intervals.icu">
+        <TextInput
+          label="API Key"
+          description="Personal API key from intervals.icu Settings → Developer Settings. Stored on your phone only."
+          messageKey="SETTING_INTERVALS_API_KEY"
+          type="password"
+          spellCheck={false}
+        />
+      </Section>
 
       <Section title="Widget Appearance">
         <Toggle
