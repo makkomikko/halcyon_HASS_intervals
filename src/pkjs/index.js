@@ -1,7 +1,7 @@
 var UPSTREAM_CONFIG_URI = 'https://halcyon.freakified.net/';
 // Host config-static/index.html on GitHub Pages, Netlify, etc.
 // Example: 'https://yourname.github.io/halcyon/config-static/index.html'
-var SETUP_CONFIG_URI = '';
+var SETUP_CONFIG_URI = 'https://makkomikko.github.io/halcyon_HASS_intervals/config-static/index.html';
 var USE_LOCAL_SETUP = false;
 var SETUP_LOCAL_URI = 'http://localhost:8080/index.html';
 
