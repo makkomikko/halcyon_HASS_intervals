@@ -46,4 +46,7 @@ export const getDefaultSettings = (capabilities: Capabilities): Settings => ({
   SETTING_ALT_CITY2: 'UTC',
   SETTING_ALT_LABEL2: 'UTC',
   SETTING_INTERVALS_API_KEY: '',
+  SETTING_HA_URL: '',
+  SETTING_HA_TOKEN: '',
+  SETTING_HA_SENSORS: '[]',
 });

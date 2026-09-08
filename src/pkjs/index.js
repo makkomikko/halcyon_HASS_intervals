@@ -11,6 +11,7 @@ var FALLBACK_INTERVALS_API_KEY = '';
 var SunCalc = require('./suncalc');
 var Weather = require('./weather');
 var Intervals = require('./intervals');
+var HomeAssistant = require('./homeassistant');
 var Languages = require('./languages');
 var Cities = require('./cities');
 
@@ -18,10 +19,14 @@ var Cities = require('./cities');
 var cachedWeather = null;
 var cachedSolar = null;
 var cachedIntervals = null;
+var cachedHa = null;
 var cachedSettings = null;
 
 var TIME_FORMAT_STORAGE_KEY = 'halcyonIs24h';
 var INTERVALS_API_KEY_STORAGE_KEY = 'halcyonIntervalsApiKey';
+var HA_TOKEN_STORAGE_KEY = 'halcyonHaToken';
+var HA_AWAY_WIDGET_FORMAT = '{hr} {t:BPM}';
+var HA_TOKEN_PATTERN = /\{ha_[a-z0-9_]+\}/;
 var DEFAULT_ALT_CITY = 'TOKYO';
 var DEFAULT_ALT_CITY2 = 'UTC';
 var ALT_LABEL_MAX_LENGTH = 6;
@@ -118,6 +123,29 @@ function settingsUseIntervals(settings) {
   });
 }
 
+function containsHaTokens(fmt) {
+  return !!fmt && HA_TOKEN_PATTERN.test(fmt);
+}
+
+function settingsUseHomeAssistant(settings) {
+  var defaultWidgets = getDefaultWidgets();
+  settings = settings || {};
+
+  return WIDGET_SLOT_KEYS.some(function (key) {
+    var fmt = settings[key];
+    if (fmt === undefined || fmt === null) {
+      fmt = defaultWidgets[key];
+    }
+    return containsHaTokens(fmt);
+  });
+}
+
+function resolveHaPresenceFormat(fmt, isHome) {
+  if (!containsHaTokens(fmt)) return fmt;
+  if (isHome === false) return HA_AWAY_WIDGET_FORMAT;
+  return fmt;
+}
+
 function readStoredIntervalsApiKey() {
   try {
     var key = localStorage.getItem(INTERVALS_API_KEY_STORAGE_KEY);
@@ -149,6 +177,47 @@ function getIntervalsApiKey(settings) {
   }
   if (FALLBACK_INTERVALS_API_KEY && typeof FALLBACK_INTERVALS_API_KEY === 'string') {
     return FALLBACK_INTERVALS_API_KEY.trim();
+  }
+  return '';
+}
+
+function readStoredHaToken() {
+  try {
+    var key = localStorage.getItem(HA_TOKEN_STORAGE_KEY);
+    if (key && typeof key === 'string') {
+      return key.trim();
+    }
+  } catch (e) { }
+  return '';
+}
+
+function saveStoredHaToken(key) {
+  if (!key || typeof key !== 'string' || !key.trim()) {
+    return;
+  }
+  try {
+    localStorage.setItem(HA_TOKEN_STORAGE_KEY, key.trim());
+  } catch (e) { }
+}
+
+function getHaUrl(settings) {
+  settings = settings || {};
+  var url = settings.SETTING_HA_URL;
+  if (url && typeof url === 'string' && url.trim()) {
+    return url.trim();
+  }
+  return '';
+}
+
+function getHaToken(settings) {
+  settings = settings || {};
+  var key = settings.SETTING_HA_TOKEN;
+  if (key && typeof key === 'string' && key.trim()) {
+    return key.trim();
+  }
+  key = readStoredHaToken();
+  if (key) {
+    return key;
   }
   return '';
 }
@@ -214,7 +283,7 @@ function applyAltCityMessage(msg, settings, cityKey, labelKey, messageLabelKey, 
  * JS-side tokens with their current values and returns the result.
  * Unknown tokens (e.g. {date}, {steps}) are left untouched for the C side.
  */
-function applyJsTokens(formatStr, weather, solar, intervals, isImperial, use24h, lang) {
+function applyJsTokens(formatStr, weather, solar, intervals, ha, isImperial, use24h, lang) {
   if (!formatStr) return formatStr;
 
   var L = Languages.getLang(lang);
@@ -274,6 +343,13 @@ function applyJsTokens(formatStr, weather, solar, intervals, isImperial, use24h,
     result = result.replace('{icu_stats}', Intervals.formatStats(intervals));
   }
 
+  // Home Assistant temperature tokens
+  if (HA_TOKEN_PATTERN.test(result)) {
+    result = result.replace(/\{ha_([a-z0-9_]+)\}/g, function (match, name) {
+      return HomeAssistant.formatToken(name, ha, isImperial);
+    });
+  }
+
   // Universal translation token substitution {t:KEY}
   result = result.replace(/\{t:([A-Z_]+)\}/g, function (match, key) {
     return L.labels[key] || match;
@@ -296,7 +372,9 @@ function sendDataToWatch() {
   var use24h = cachedIs24h;
   var weather = Weather.isDisplayable(cachedWeather) ? cachedWeather : null;
   var intervals = Intervals.isDisplayable(cachedIntervals) ? cachedIntervals : null;
+  var ha = HomeAssistant.isDisplayable(cachedHa) ? cachedHa : null;
   var defaultWidgets = getDefaultWidgets();
+  var isHome = ha === null ? null : !!ha.isHome;
 
   if (cachedWeather && !weather) {
     cachedWeather = null;
@@ -308,6 +386,11 @@ function sendDataToWatch() {
     Intervals.clear();
   }
 
+  if (cachedHa && !ha) {
+    cachedHa = null;
+    HomeAssistant.clear();
+  }
+
   var msg = {};
 
   WIDGET_SLOT_KEYS.forEach(function (key) {
@@ -317,8 +400,9 @@ function sendDataToWatch() {
       fmt = defaultWidgets[key];
     }
     if (fmt !== undefined && fmt !== null) {
+      fmt = resolveHaPresenceFormat(fmt, isHome);
       // Apply JS tokens; C tokens pass through untouched
-      var processed = applyJsTokens(fmt, weather, cachedSolar, intervals, isImperial, use24h, lang);
+      var processed = applyJsTokens(fmt, weather, cachedSolar, intervals, ha, isImperial, use24h, lang);
       msg[key] = processed;
     }
   });
@@ -369,6 +453,36 @@ function fetchIntervalsIfNeeded() {
     },
     function (reason) {
       console.log('Intervals fetch error: ' + reason);
+    }
+  );
+}
+
+function fetchHomeAssistantIfNeeded() {
+  if (!settingsUseHomeAssistant(cachedSettings)) {
+    console.log('No Home Assistant widgets configured; skipping HA fetch');
+    return;
+  }
+
+  var url = getHaUrl(cachedSettings);
+  var token = getHaToken(cachedSettings);
+  if (!url || !token) {
+    console.log('Home Assistant URL or token not configured; skipping HA fetch');
+    return;
+  }
+
+  var sensors = HomeAssistant.getSensorMap(cachedSettings);
+  if (!sensors.length) {
+    console.log('No Home Assistant sensors configured; skipping HA fetch');
+    return;
+  }
+
+  HomeAssistant.fetch(url, token, sensors,
+    function (data) {
+      cachedHa = data;
+      sendDataToWatch();
+    },
+    function (reason) {
+      console.log('Home Assistant fetch error: ' + reason);
     }
   );
 }
@@ -430,6 +544,7 @@ function locationSuccess(pos) {
   // Send to watch immediately (even before weather)
   sendDataToWatch();
   fetchIntervalsIfNeeded();
+  fetchHomeAssistantIfNeeded();
 
   if (!settingsUseWeather(cachedSettings)) {
     console.log('No weather widgets configured; skipping weather fetch');
@@ -467,9 +582,10 @@ function getLocation() {
 Pebble.addEventListener('ready', function (e) {
   console.log('PebbleKit JS ready');
 
-  // Restore cached weather/solar/intervals from previous session
+  // Restore cached weather/solar/intervals/HA from previous session
   cachedWeather = Weather.restore();
   cachedIntervals = Intervals.restore();
+  cachedHa = HomeAssistant.restore();
   var savedSolar = localStorage.getItem('halcyonSolar');
   if (savedSolar) {
     try { cachedSolar = JSON.parse(savedSolar); } catch (e) { }
@@ -485,6 +601,7 @@ Pebble.addEventListener('ready', function (e) {
   // Then kick off a fresh location + weather fetch
   getLocation();
   fetchIntervalsIfNeeded();
+  fetchHomeAssistantIfNeeded();
 });
 
 // ---- Watch-initiated heartbeat ----
@@ -505,6 +622,7 @@ Pebble.addEventListener('appmessage', function (e) {
     resetBackoff();
     getLocation();
     fetchIntervalsIfNeeded();
+    fetchHomeAssistantIfNeeded();
   }
 });
 
@@ -546,6 +664,11 @@ function loadPersistedSettings() {
     settings.SETTING_INTERVALS_API_KEY = storedApiKey;
   }
 
+  var storedHaToken = readStoredHaToken();
+  if (storedHaToken && !settings.SETTING_HA_TOKEN) {
+    settings.SETTING_HA_TOKEN = storedHaToken;
+  }
+
   return settings;
 }
 
@@ -560,6 +683,22 @@ function mergeIntervalsApiKey(configData, previousSettings) {
 
   if (configData.SETTING_INTERVALS_API_KEY) {
     saveStoredIntervalsApiKey(configData.SETTING_INTERVALS_API_KEY);
+  }
+
+  return configData;
+}
+
+function mergeHaCredentials(configData, previousSettings) {
+  previousSettings = previousSettings || {};
+  configData = configData || {};
+
+  var previousToken = getHaToken(previousSettings);
+  if (!configData.SETTING_HA_TOKEN && previousToken) {
+    configData.SETTING_HA_TOKEN = previousToken;
+  }
+
+  if (configData.SETTING_HA_TOKEN) {
+    saveStoredHaToken(configData.SETTING_HA_TOKEN);
   }
 
   return configData;
@@ -608,6 +747,7 @@ Pebble.addEventListener('webviewclosed', function (e) {
   }
 
   configData = mergeIntervalsApiKey(configData, cachedSettings);
+  configData = mergeHaCredentials(configData, cachedSettings);
 
   // Save to localStorage for persistence
   localStorage.setItem('halcyonSettings', JSON.stringify(configData));
@@ -652,7 +792,10 @@ Pebble.addEventListener('webviewclosed', function (e) {
     if (colorKeys.indexOf(key) === -1 && widgetKeys.indexOf(key) === -1 &&
       key !== 'SETTING_ALT_CITY' && key !== 'SETTING_ALT_LABEL' &&
       key !== 'SETTING_ALT_CITY2' && key !== 'SETTING_ALT_LABEL2' &&
-      key !== 'SETTING_INTERVALS_API_KEY') {
+      key !== 'SETTING_INTERVALS_API_KEY' &&
+      key !== 'SETTING_HA_TOKEN' &&
+      key !== 'SETTING_HA_URL' &&
+      key !== 'SETTING_HA_SENSORS') {
       var value = configData[key];
       if (typeof value === 'boolean') {
         dict[key] = value ? 1 : 0;
@@ -674,4 +817,5 @@ Pebble.addEventListener('webviewclosed', function (e) {
   // Now apply Pass 1 to widget strings and send them with current weather/solar data
   sendDataToWatch();
   fetchIntervalsIfNeeded();
+  fetchHomeAssistantIfNeeded();
 });

@@ -74,7 +74,16 @@
 </head>
 <body>
   <h1>Halcyon Setup</h1>
-  <p class="note">Configure intervals.icu here, then continue to the full Halcyon settings for themes and widgets.</p>
+  <p class="note">Configure integrations here, then continue to the full Halcyon settings for themes and widgets.</p>
+
+  <h2>Home Assistant</h2>
+  <label for="SETTING_HA_URL">URL</label>
+  <input id="SETTING_HA_URL" type="url" autocomplete="off" spellcheck="false" placeholder="http://192.168.1.50:8123">
+  <p class="note">Local Home Assistant URL. Reachable = at home.</p>
+
+  <label for="SETTING_HA_TOKEN">Long-Lived Access Token</label>
+  <input id="SETTING_HA_TOKEN" type="password" autocomplete="off" spellcheck="false">
+  <p class="note">From HA Profile → Security → Long-Lived Access Tokens. Stored on your phone only.</p>
 
   <h2>Intervals.icu</h2>
   <label for="SETTING_INTERVALS_API_KEY">API Key</label>
@@ -85,6 +94,9 @@
   <label for="SETTING_WIDGET_LOWER_SECONDARY">Lower text 2</label>
   <select id="SETTING_WIDGET_LOWER_SECONDARY">
     <option value="">None</option>
+    <optgroup label="Home Assistant">
+      <option value="{ha_lr} {ha_br}">Home Temperatures</option>
+    </optgroup>
     <optgroup label="Intervals.icu">
       <option value="{icu_stats}">Intervals.icu Stats</option>
     </optgroup>
@@ -97,7 +109,7 @@
       <option value="{t:BATTERY} {batt}%">Battery %</option>
     </optgroup>
   </select>
-  <p class="note">On the full settings page, use <strong>Custom</strong> and enter <code>{icu_stats}</code> for other slots.</p>
+  <p class="note">On the full settings page, use <strong>Custom</strong> and enter tokens like <code>{ha_lr}</code> for other slots. Configure sensor mappings in Home Assistant settings.</p>
 
   <div class="actions">
     <a id="continue" class="button" href="#">Continue to Halcyon Settings</a>
@@ -137,6 +149,8 @@
       Object.keys(baseSettings).forEach(function (key) {
         next[key] = baseSettings[key];
       });
+      next.SETTING_HA_URL = document.getElementById('SETTING_HA_URL').value;
+      next.SETTING_HA_TOKEN = document.getElementById('SETTING_HA_TOKEN').value;
       next.SETTING_INTERVALS_API_KEY = document.getElementById('SETTING_INTERVALS_API_KEY').value;
       next.SETTING_WIDGET_LOWER_SECONDARY = document.getElementById('SETTING_WIDGET_LOWER_SECONDARY').value;
       return next;
@@ -149,6 +163,8 @@
     }
 
     var settings = readSettings();
+    document.getElementById('SETTING_HA_URL').value = settings.SETTING_HA_URL || '';
+    document.getElementById('SETTING_HA_TOKEN').value = settings.SETTING_HA_TOKEN || '';
     document.getElementById('SETTING_INTERVALS_API_KEY').value = settings.SETTING_INTERVALS_API_KEY || '';
     document.getElementById('SETTING_WIDGET_LOWER_SECONDARY').value =
       settings.SETTING_WIDGET_LOWER_SECONDARY || '';

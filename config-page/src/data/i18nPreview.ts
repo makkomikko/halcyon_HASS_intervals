@@ -153,6 +153,8 @@ export const renderPreview = (
     '{dist_unit}': isImperial ? 'MI' : 'KM',
     '{hr}': '72',
     '{icu_stats}': '24.3KM 58HRV',
+    '{ha_lr}': isImperial ? '70' : '21',
+    '{ha_br}': isImperial ? '66' : '19',
     '{batt}': '85',
     // Solar / weather (PKJS-side)
     '{sunrise}': '6:42',
@@ -185,6 +187,9 @@ export const renderPreview = (
   out = out.replace(/\{t:([A-Z_]+)\}/g, (match, key) => {
     return TRANSLATIONS[key] ? TRANSLATIONS[key][idx] : match;
   });
+
+  // Home Assistant tokens not listed above
+  out = out.replace(/\{ha_[a-z0-9_]+\}/g, isImperial ? '70' : '21');
 
   // Strip any unrecognized {tokens} so previews don't show raw braces.
   out = out.replace(/\{[a-z_:%]+\}/gi, '');

@@ -76,4 +76,7 @@ export interface Settings {
   SETTING_ALT_CITY2: string;
   SETTING_ALT_LABEL2: string;
   SETTING_INTERVALS_API_KEY: string;
+  SETTING_HA_URL: string;
+  SETTING_HA_TOKEN: string;
+  SETTING_HA_SENSORS: string;
 }

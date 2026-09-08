@@ -12,6 +12,7 @@ import {
   WidgetSelector,
   DonationLink,
   AltTimezoneSection,
+  HomeAssistantSection,
 } from '../components';
 import { useSavedThemes } from '../hooks/useSavedThemes';
 import lightThemes from '../data/light-themes.json';
@@ -26,6 +27,7 @@ import {
   ALT_TIMEZONE2_WIDGET_IDS,
   WEATHER_WIDGET_IDS,
   containsWidgets,
+  containsHaWidgets,
 } from '../data/widgetTypes';
 
 export const SettingsPage: React.FC = () => {
@@ -40,6 +42,7 @@ export const SettingsPage: React.FC = () => {
   const altWidgetSelected = containsWidgets(widgetValues, ALT_TIMEZONE_WIDGET_IDS);
   const alt2WidgetSelected = containsWidgets(widgetValues, ALT_TIMEZONE2_WIDGET_IDS);
   const weatherWidgetSelected = containsWidgets(widgetValues, WEATHER_WIDGET_IDS);
+  const haWidgetSelected = containsHaWidgets(widgetValues);
 
   const activeThemes = React.useMemo(
     () =>
@@ -257,6 +260,10 @@ export const SettingsPage: React.FC = () => {
           spellCheck={false}
         />
       </Section>
+
+      {(haWidgetSelected || settings.SETTING_HA_URL || settings.SETTING_HA_TOKEN) && (
+        <HomeAssistantSection />
+      )}
 
       <Section title="Widget Appearance">
         <Toggle

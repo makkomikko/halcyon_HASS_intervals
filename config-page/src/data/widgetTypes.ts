@@ -44,6 +44,8 @@ const WIDGET_TEMPLATES: WidgetOptionTemplate[] = [
   { value: '{hr} {t:BPM}', label: 'Current Heart Rate', category: 'Health' },
   // Intervals.icu
   { value: '{icu_stats}', label: 'Intervals.icu Stats', category: 'Intervals.icu' },
+  // Home Assistant
+  { value: '{ha_lr} {ha_br}', label: 'Home Temperatures', category: 'Home Assistant' },
   // Device
   { value: '{t:BATTERY} {batt}%', label: 'Battery %', category: 'Device' },
   // Weather
@@ -93,6 +95,8 @@ export const WIDGET_TOKENS: WidgetToken[] = [
   { token: '{dist_unit}', label: 'Dist. Unit', category: 'Health & Device', requires: 'health' },
   { token: '{hr}', label: 'Heart Rate', category: 'Health & Device', requires: 'hrm' },
   { token: '{icu_stats}', label: 'Intervals.icu Stats', category: 'Intervals.icu' },
+  { token: '{ha_lr}', label: 'HA Living Room', category: 'Home Assistant' },
+  { token: '{ha_br}', label: 'HA Bedroom', category: 'Home Assistant' },
   { token: '{batt}', label: 'Battery', category: 'Health & Device' },
   { token: '{temp}', label: 'Temp', category: 'Weather' },
   { token: '{thi}', label: 'High', category: 'Weather' },
@@ -121,6 +125,16 @@ export const WEATHER_WIDGET_IDS = WIDGET_TOKENS.filter((token) => token.category
 export const INTERVALS_WIDGET_IDS = WIDGET_TOKENS.filter(
   (token) => token.category === 'Intervals.icu',
 ).map((token) => token.token);
+
+export const HA_WIDGET_TOKEN_PATTERN = /\{ha_[a-z0-9_]+\}/;
+
+export const HA_WIDGET_IDS = WIDGET_TOKENS.filter(
+  (token) => token.category === 'Home Assistant',
+).map((token) => token.token);
+
+export const containsHaWidgets = (
+  widgetValues: Array<string | null | undefined>,
+): boolean => widgetValues.some((value) => !!value && HA_WIDGET_TOKEN_PATTERN.test(value));
 
 const normalizeWidgetTokenId = (id: WidgetTokenId) =>
   id.startsWith('{') && id.endsWith('}') ? id : `{${id}}`;
