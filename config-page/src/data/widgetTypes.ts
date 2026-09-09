@@ -44,6 +44,9 @@ const WIDGET_TEMPLATES: WidgetOptionTemplate[] = [
   { value: '{hr} {t:BPM}', label: 'Current Heart Rate', category: 'Health' },
   // Intervals.icu
   { value: '{icu_stats}', label: 'Intervals.icu Stats', category: 'Intervals.icu' },
+  // Feature Build
+  { value: '{fb_name}', label: 'Feature Build Name', category: 'Feature Build' },
+  { value: '{fb_days_left}d', label: 'FB Working Days Left', category: 'Feature Build' },
   // Home Assistant
   { value: '{ha_lr} {ha_br}', label: 'Home Temperatures', category: 'Home Assistant' },
   // Device
@@ -95,6 +98,8 @@ export const WIDGET_TOKENS: WidgetToken[] = [
   { token: '{dist_unit}', label: 'Dist. Unit', category: 'Health & Device', requires: 'health' },
   { token: '{hr}', label: 'Heart Rate', category: 'Health & Device', requires: 'hrm' },
   { token: '{icu_stats}', label: 'Intervals.icu Stats', category: 'Intervals.icu' },
+  { token: '{fb_name}', label: 'Feature Build Name', category: 'Feature Build' },
+  { token: '{fb_days_left}', label: 'FB Working Days Left', category: 'Feature Build' },
   { token: '{ha_lr}', label: 'HA Living Room', category: 'Home Assistant' },
   { token: '{ha_br}', label: 'HA Bedroom', category: 'Home Assistant' },
   { token: '{batt}', label: 'Battery', category: 'Health & Device' },

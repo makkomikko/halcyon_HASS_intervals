@@ -14,3 +14,4 @@ export * from './ImportThemeModal';
 export * from './ConfirmModal';
 export * from './DonationLink';
 export * from './HomeAssistantSection';
+export * from './WorkScheduleSection';

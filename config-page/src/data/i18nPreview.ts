@@ -1,6 +1,7 @@
 // Preview-only i18n helpers for the config page.
 
 import { DEFAULT_DATE_FORMATS } from './dateFormats';
+import { getFbForDate } from '../utils/fbSchedule';
 
 const LOCALE_BY_INDEX: string[] = [
   'en-us', 'fr-fr', 'de-de', 'es-es', 'it-it', 'nl-nl', 'tr-tr', 'cs-cz', 'pt-pt', 'el-gr',
@@ -128,6 +129,7 @@ export const renderPreview = (
   const dec = getDecimalSeparator(lang);
   const safeAltLabel = altLabel || 'TYO';
   const safeAltLabel2 = altLabel2 || 'UTC';
+  const fb = getFbForDate(now, 62, idx);
 
   const replacements: Record<string, string> = {
     // Date / time tokens (C-side)
@@ -153,6 +155,8 @@ export const renderPreview = (
     '{dist_unit}': isImperial ? 'MI' : 'KM',
     '{hr}': '72',
     '{icu_stats}': '24.3KM 58HRV',
+    '{fb_name}': fb.name,
+    '{fb_days_left}': String(fb.workDaysLeft),
     '{ha_lr}': isImperial ? '70' : '21',
     '{ha_br}': isImperial ? '66' : '19',
     '{batt}': '85',

@@ -12,6 +12,8 @@ var SunCalc = require('./suncalc');
 var Weather = require('./weather');
 var Intervals = require('./intervals');
 var HomeAssistant = require('./homeassistant');
+var FbSchedule = require('./fbschedule');
+var WorkSchedule = require('./workschedule');
 var Languages = require('./languages');
 var Cities = require('./cities');
 
@@ -74,6 +76,22 @@ var WEATHER_WIDGET_TOKENS = [
 ];
 
 var INTERVALS_WIDGET_TOKENS = ['{icu_stats}'];
+
+var PHONE_ONLY_SETTING_KEYS = [
+  'SETTING_INTERVALS_API_KEY',
+  'SETTING_HA_TOKEN',
+  'SETTING_HA_URL',
+  'SETTING_HA_SENSORS',
+  'SETTING_WORK_SCHEDULE_ENABLED',
+  'SETTING_WORK_START',
+  'SETTING_WORK_END',
+  'SETTING_WORK_DAYS',
+  'SETTING_HOLIDAY_MODE',
+  'SETTING_WORK_WIDGET_UPPER_SECONDARY',
+  'SETTING_WORK_WIDGET_UPPER_PRIMARY',
+  'SETTING_WORK_WIDGET_LOWER_PRIMARY',
+  'SETTING_WORK_WIDGET_LOWER_SECONDARY'
+];
 
 function getDefaultWidgets() {
   var defaults = {};
@@ -283,7 +301,7 @@ function applyAltCityMessage(msg, settings, cityKey, labelKey, messageLabelKey, 
  * JS-side tokens with their current values and returns the result.
  * Unknown tokens (e.g. {date}, {steps}) are left untouched for the C side.
  */
-function applyJsTokens(formatStr, weather, solar, intervals, ha, isImperial, use24h, lang) {
+function applyJsTokens(formatStr, weather, solar, intervals, ha, fb, isImperial, use24h, lang) {
   if (!formatStr) return formatStr;
 
   var L = Languages.getLang(lang);
@@ -343,6 +361,14 @@ function applyJsTokens(formatStr, weather, solar, intervals, ha, isImperial, use
     result = result.replace('{icu_stats}', Intervals.formatStats(intervals));
   }
 
+  // Feature Build tokens
+  if (result.indexOf('{fb_name}') !== -1) {
+    result = result.replace('{fb_name}', FbSchedule.formatName(fb));
+  }
+  if (result.indexOf('{fb_days_left}') !== -1) {
+    result = result.replace('{fb_days_left}', FbSchedule.formatDaysLeft(fb));
+  }
+
   // Home Assistant temperature tokens
   if (HA_TOKEN_PATTERN.test(result)) {
     result = result.replace(/\{ha_([a-z0-9_]+)\}/g, function (match, name) {
@@ -375,6 +401,8 @@ function sendDataToWatch() {
   var ha = HomeAssistant.isDisplayable(cachedHa) ? cachedHa : null;
   var defaultWidgets = getDefaultWidgets();
   var isHome = ha === null ? null : !!ha.isHome;
+  var isWork = WorkSchedule.isActive(settings, new Date(), lang);
+  var fb = FbSchedule.getFbForDate(new Date(), settings, lang);
 
   if (cachedWeather && !weather) {
     cachedWeather = null;
@@ -400,9 +428,11 @@ function sendDataToWatch() {
       fmt = defaultWidgets[key];
     }
     if (fmt !== undefined && fmt !== null) {
+      var workKey = 'SETTING_WORK_' + key.replace('SETTING_WIDGET_', 'WIDGET_');
+      fmt = WorkSchedule.resolveWidgetFormat(settings, workKey, fmt, isWork);
       fmt = resolveHaPresenceFormat(fmt, isHome);
       // Apply JS tokens; C tokens pass through untouched
-      var processed = applyJsTokens(fmt, weather, cachedSolar, intervals, ha, isImperial, use24h, lang);
+      var processed = applyJsTokens(fmt, weather, cachedSolar, intervals, ha, fb, isImperial, use24h, lang);
       msg[key] = processed;
     }
   });
@@ -792,10 +822,7 @@ Pebble.addEventListener('webviewclosed', function (e) {
     if (colorKeys.indexOf(key) === -1 && widgetKeys.indexOf(key) === -1 &&
       key !== 'SETTING_ALT_CITY' && key !== 'SETTING_ALT_LABEL' &&
       key !== 'SETTING_ALT_CITY2' && key !== 'SETTING_ALT_LABEL2' &&
-      key !== 'SETTING_INTERVALS_API_KEY' &&
-      key !== 'SETTING_HA_TOKEN' &&
-      key !== 'SETTING_HA_URL' &&
-      key !== 'SETTING_HA_SENSORS') {
+      PHONE_ONLY_SETTING_KEYS.indexOf(key) === -1) {
       var value = configData[key];
       if (typeof value === 'boolean') {
         dict[key] = value ? 1 : 0;

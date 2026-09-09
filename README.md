@@ -51,3 +51,26 @@ The API key stays on your phone only (PebbleKit JS `localStorage`). It is not se
 3. Rebuild and install the watchface
 
 If `SETUP_CONFIG_URI` is not set, settings open the upstream Halcyon page directly (no intervals.icu API key field). You can still use `FALLBACK_INTERVALS_API_KEY` in `index.js` as a dev fallback.
+
+### Work schedule + Feature Build widgets (this fork)
+
+During configured work hours, the watchface can show **work widgets** instead of your normal layout. This is useful for displaying the current Nokia Feature Build (FB) and working days remaining.
+
+1. Open Halcyon settings on your phone
+2. Configure **Work Schedule** — enable the schedule, set hours (default 09:00–15:00), and pick work days
+3. Optionally customize work-widget slots using `{fb_name}` and `{fb_days_left}` tokens
+
+**Tokens:**
+
+| Token | Example | Description |
+|-------|---------|-------------|
+| `{fb_name}` | `FB2619` | Current Feature Build name |
+| `{fb_days_left}` | `5` | Working days remaining in the FB period |
+
+FB names are computed locally from a fixed calendar (2-week periods starting Wednesdays; anchor `FB2619` = 2026-09-09). `{fb_days_left}` counts only configured work weekdays. When language is **Suomi (Finnish)**, Finnish public holidays are excluded from the count and also disable the work schedule for that day.
+
+**Holiday mode** on the settings page disables the work schedule until turned off (e.g. during vacation).
+
+Work schedule settings stay on your phone only (PebbleKit JS `localStorage`). They are not sent to the watch.
+
+Run unit tests: `node scripts/test-fbschedule.js`

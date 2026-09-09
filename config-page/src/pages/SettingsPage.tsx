@@ -13,6 +13,7 @@ import {
   DonationLink,
   AltTimezoneSection,
   HomeAssistantSection,
+  WorkScheduleSection,
 } from '../components';
 import { useSavedThemes } from '../hooks/useSavedThemes';
 import lightThemes from '../data/light-themes.json';
@@ -264,6 +265,8 @@ export const SettingsPage: React.FC = () => {
       {(haWidgetSelected || settings.SETTING_HA_URL || settings.SETTING_HA_TOKEN) && (
         <HomeAssistantSection />
       )}
+
+      <WorkScheduleSection />
 
       <Section title="Widget Appearance">
         <Toggle

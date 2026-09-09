@@ -13,6 +13,7 @@ interface TextInputProps {
   normalizeValue?: (value: string) => string;
   spellCheck?: boolean;
   className?: string;
+  placeholder?: string;
 }
 
 export const TextInput: React.FC<TextInputProps> = ({
@@ -25,6 +26,7 @@ export const TextInput: React.FC<TextInputProps> = ({
   normalizeValue,
   spellCheck = true,
   className = '',
+  placeholder,
 }) => {
   const { settings, updateSetting } = useConfig();
   const inputId = React.useId();
@@ -50,6 +52,7 @@ export const TextInput: React.FC<TextInputProps> = ({
           updateSetting(messageKey, nextValue);
         }}
         spellCheck={spellCheck}
+        placeholder={placeholder}
       />
     </FormItem>
   );

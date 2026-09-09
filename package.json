@@ -7,7 +7,8 @@
   ],
   "private": true,
   "scripts": {
-    "check:i18n": "node scripts/check-languages.js"
+    "check:i18n": "node scripts/check-languages.js",
+    "test:fbschedule": "node scripts/test-fbschedule.js"
   },
   "pebble": {
     "displayName": "Halcyon",
