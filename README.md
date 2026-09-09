@@ -25,10 +25,12 @@ Halcyon represents the 24 hours of the day as a ring around the edges of your wa
 
 This fork adds week running km and today's HRV via the `{icu_stats}` widget token. Configuration uses a two-step flow:
 
-1. **Setup hub** (`config-static/index.html`) — enter your intervals.icu API key
+1. **Setup hub** (`config-static/index.html`) — integrations, HA sensor mappings, work schedule, full token reference, and a custom format builder (copy/paste to the full settings page)
 2. **Full Halcyon settings** (`halcyon.freakified.net`) — themes, colors, and widgets
 
-The API key stays on your phone only (PebbleKit JS `localStorage`). It is not sent to the watch.
+The setup hub includes a **Custom Format Builder**: compose a widget format string using the token inserter, tap **Copy**, then paste into **Custom…** on any widget slot on the full settings page. Use the collapsible **Token Reference** to browse all available tokens (fork additions are marked).
+
+API keys and integration settings stay on your phone only (PebbleKit JS `localStorage`). They are not sent to the watch.
 
 #### Host the setup page (GitHub Pages, free)
 
@@ -56,9 +58,9 @@ If `SETUP_CONFIG_URI` is not set, settings open the upstream Halcyon page direct
 
 During configured work hours, the watchface can show **work widgets** instead of your normal layout. This is useful for displaying the current Nokia Feature Build (FB) and working days remaining.
 
-1. Open Halcyon settings on your phone
+1. Open Halcyon settings on your phone (setup hub or full settings page)
 2. Configure **Work Schedule** — enable the schedule, set hours (default 09:00–15:00), and pick work days
-3. Optionally customize work-widget slots using `{fb_name}` and `{fb_days_left}` tokens
+3. Optionally customize work-widget slots using `{fb_name}` and `{fb_days_left}` tokens (or paste a format from the setup hub's Custom Format Builder)
 
 **Tokens:**
 

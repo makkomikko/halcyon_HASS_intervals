@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Halcyon Setup</title>
+  <link rel="stylesheet" href="setup.css">
   <style>
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -26,7 +27,7 @@
       margin: 12px 0 4px;
       color: #ccc;
     }
-    select, input {
+    select, input[type="url"], input[type="password"], input[type="text"], input[type="time"] {
       width: 100%;
       box-sizing: border-box;
       padding: 10px;
@@ -74,7 +75,7 @@
 </head>
 <body>
   <h1>Halcyon Setup</h1>
-  <p class="note">Configure integrations here, then continue to the full Halcyon settings for themes and widgets.</p>
+  <p class="note">Configure integrations and work schedule here, then continue to the full Halcyon settings for themes and widgets.</p>
 
   <h2>Home Assistant</h2>
   <label for="SETTING_HA_URL">URL</label>
@@ -85,31 +86,69 @@
   <input id="SETTING_HA_TOKEN" type="password" autocomplete="off" spellcheck="false">
   <p class="note">From HA Profile → Security → Long-Lived Access Tokens. Stored on your phone only.</p>
 
+  <label>Temperature sensors</label>
+  <p class="note">Map short token names to HA entity IDs. Use tokens like <code>{ha_lr}</code> in widget formats.</p>
+  <div id="ha-sensors" class="ha-sensors"></div>
+  <button type="button" id="ha-sensor-add" class="ha-sensor-add">Add sensor</button>
+  <p id="ha-sensor-example" class="note"></p>
+
   <h2>Intervals.icu</h2>
   <label for="SETTING_INTERVALS_API_KEY">API Key</label>
   <input id="SETTING_INTERVALS_API_KEY" type="password" autocomplete="off" spellcheck="false">
   <p class="note">From intervals.icu Settings → Developer Settings. Stored on your phone only.</p>
 
-  <h2>Widget</h2>
-  <label for="SETTING_WIDGET_LOWER_SECONDARY">Lower text 2</label>
-  <select id="SETTING_WIDGET_LOWER_SECONDARY">
-    <option value="">None</option>
-    <optgroup label="Home Assistant">
-      <option value="{ha_lr} {ha_br}">Home Temperatures</option>
-    </optgroup>
-    <optgroup label="Intervals.icu">
-      <option value="{icu_stats}">Intervals.icu Stats</option>
-    </optgroup>
-    <optgroup label="Health">
-      <option value="{steps} {t:STEPS}">Steps</option>
-      <option value="{dist} {dist_unit}">Distance Walked</option>
-      <option value="{hr} {t:BPM}">Current Heart Rate</option>
-    </optgroup>
-    <optgroup label="Device">
-      <option value="{t:BATTERY} {batt}%">Battery %</option>
-    </optgroup>
-  </select>
-  <p class="note">On the full settings page, use <strong>Custom</strong> and enter tokens like <code>{ha_lr}</code> for other slots. Configure sensor mappings in Home Assistant settings.</p>
+  <h2>Custom Format Builder</h2>
+  <p class="note">Build a widget format string, then copy it. Paste into <strong class="hint-strong">Custom…</strong> on any widget slot on the full settings page to show it all the time. Paste into a <strong class="hint-strong">work widget</strong> below to show it only during work hours (hidden when Holiday mode is on).</p>
+  <label for="custom-format-input">Custom format</label>
+  <div class="builder-row">
+    <input id="custom-format-input" type="text" maxlength="47" spellcheck="false" placeholder="Enter text or tap a token below…">
+    <button type="button" id="copy-format" class="copy-button">Copy</button>
+  </div>
+  <div id="char-counter" class="char-counter">0 / 47</div>
+  <div id="token-panel" class="token-panel" aria-label="Token inserter"></div>
+
+  <h2>Token Reference</h2>
+  <p class="note">All available tokens grouped by category. Fork additions are marked.</p>
+  <div id="token-reference" class="token-reference"></div>
+
+  <h2>Work Schedule</h2>
+  <div class="checkbox-row">
+    <input type="checkbox" id="SETTING_WORK_SCHEDULE_ENABLED">
+    <label for="SETTING_WORK_SCHEDULE_ENABLED">Enable work schedule<span class="note" style="display:block;margin-top:4px;">During work hours, show work widgets instead of the normal layout.</span></label>
+  </div>
+  <div class="checkbox-row">
+    <input type="checkbox" id="SETTING_HOLIDAY_MODE">
+    <label for="SETTING_HOLIDAY_MODE">Holiday mode<span class="note" style="display:block;margin-top:4px;">Disable work schedule until turned off (e.g. vacation).</span></label>
+  </div>
+
+  <label>Work hours</label>
+  <div class="work-time-row">
+    <label for="SETTING_WORK_START">Start
+      <input id="SETTING_WORK_START" type="time">
+    </label>
+    <label for="SETTING_WORK_END">End
+      <input id="SETTING_WORK_END" type="time">
+    </label>
+  </div>
+  <p class="note">Widgets switch during these hours on selected weekdays.</p>
+
+  <label>Work days</label>
+  <div id="work-days" class="work-days"></div>
+  <p class="note">Weekdays counted for work hours and FB days remaining.</p>
+
+  <label for="SETTING_WORK_WIDGET_UPPER_SECONDARY">Work upper secondary</label>
+  <input id="SETTING_WORK_WIDGET_UPPER_SECONDARY" class="work-widget-input" type="text" spellcheck="false" placeholder="Leave empty to keep off-work widget">
+
+  <label for="SETTING_WORK_WIDGET_UPPER_PRIMARY">Work upper primary</label>
+  <input id="SETTING_WORK_WIDGET_UPPER_PRIMARY" class="work-widget-input" type="text" spellcheck="false" placeholder="{fb_name}">
+
+  <label for="SETTING_WORK_WIDGET_LOWER_PRIMARY">Work lower primary</label>
+  <input id="SETTING_WORK_WIDGET_LOWER_PRIMARY" class="work-widget-input" type="text" spellcheck="false" placeholder="{fb_days_left}d">
+
+  <label for="SETTING_WORK_WIDGET_LOWER_SECONDARY">Work lower secondary</label>
+  <input id="SETTING_WORK_WIDGET_LOWER_SECONDARY" class="work-widget-input" type="text" spellcheck="false" placeholder="Leave empty to keep off-work widget">
+
+  <p id="fb-preview" class="fb-preview"></p>
 
   <div class="actions">
     <a id="continue" class="button" href="#">Continue to Halcyon Settings</a>
@@ -117,8 +156,23 @@
     <button id="cancel" type="button">Cancel</button>
   </div>
 
+  <script src="widget-data.js"></script>
+  <script src="fb-schedule.js"></script>
   <script>
     var DEFAULT_FULL_CONFIG_URI = 'https://halcyon.freakified.net/';
+    var DEFAULT_WORK_DAYS = 62;
+    var DEFAULT_WORK_START = 540;
+    var DEFAULT_WORK_END = 900;
+    var MAX_HA_SENSORS = 4;
+    var WEEKDAYS = [
+      { label: 'Sun', bit: 0 },
+      { label: 'Mon', bit: 1 },
+      { label: 'Tue', bit: 2 },
+      { label: 'Wed', bit: 3 },
+      { label: 'Thu', bit: 4 },
+      { label: 'Fri', bit: 5 },
+      { label: 'Sat', bit: 6 }
+    ];
 
     function readParams() {
       return new URLSearchParams(window.location.search);
@@ -144,6 +198,289 @@
       return readParams().get('fullConfigUri') || DEFAULT_FULL_CONFIG_URI;
     }
 
+    function parseIntSetting(value, fallback) {
+      if (value === undefined || value === null || value === '') return fallback;
+      var n = typeof value === 'number' ? value : parseInt(String(value), 10);
+      return isNaN(n) ? fallback : n;
+    }
+
+    function minutesToTime(minutes) {
+      var h = Math.floor(minutes / 60) % 24;
+      var m = minutes % 60;
+      return (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m;
+    }
+
+    function timeToMinutes(value, fallback) {
+      var match = String(value).trim().match(/^(\d{1,2}):(\d{2})$/);
+      if (!match) return fallback;
+      var h = parseInt(match[1], 10);
+      var m = parseInt(match[2], 10);
+      if (h < 0 || h > 23 || m < 0 || m > 59) return fallback;
+      return h * 60 + m;
+    }
+
+    function normalizeTokenName(value) {
+      return String(value).toLowerCase().replace(/[^a-z0-9_]/g, '').slice(0, 12);
+    }
+
+    function parseSensors(raw) {
+      if (!raw) return [];
+      try {
+        var parsed = JSON.parse(raw);
+        if (!Array.isArray(parsed)) return [];
+        return parsed
+          .filter(function (item) {
+            return item && typeof item === 'object' &&
+              typeof item.name === 'string' && typeof item.entity === 'string';
+          })
+          .map(function (item) {
+            return {
+              name: normalizeTokenName(item.name),
+              entity: item.entity.trim()
+            };
+          })
+          .filter(function (item) { return item.name && item.entity; })
+          .slice(0, MAX_HA_SENSORS);
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function getWatchCapabilities(watchInfo) {
+      var platform = watchInfo && watchInfo.platform ? watchInfo.platform.toLowerCase() : '';
+      return {
+        hasHealth: platform === 'basalt' || platform === 'chalk' || platform === 'emery',
+        hasHrm: platform === 'emery'
+      };
+    }
+
+    var settings = readSettings();
+    var watchInfo = readWatchInfo();
+    var caps = getWatchCapabilities(watchInfo);
+    var visibleTokens = filterTokensByCapabilities(WIDGET_TOKENS, caps.hasHealth, caps.hasHrm);
+    var haSensors = parseSensors(settings.SETTING_HA_SENSORS);
+
+    function getWorkDaysFromUI() {
+      var workDays = 0;
+      WEEKDAYS.forEach(function (day) {
+        var checkbox = document.getElementById('work-day-' + day.bit);
+        if (checkbox && checkbox.checked) {
+          workDays |= (1 << day.bit);
+        }
+      });
+      return workDays || DEFAULT_WORK_DAYS;
+    }
+
+    function updateFbPreview() {
+      var workDays = getWorkDaysFromUI();
+      var lang = parseIntSetting(settings.SETTING_LANGUAGE, 0);
+      var fb = getFbForDate(new Date(), workDays, lang);
+      var preview = document.getElementById('fb-preview');
+      var suffix = lang === 20 ? ' (Finnish public holidays excluded)' : '';
+      var dayWord = fb.workDaysLeft === 1 ? 'day' : 'days';
+      preview.innerHTML = 'Today: <strong>' + fb.name + '</strong> — ' +
+        fb.workDaysLeft + ' working ' + dayWord + ' remaining' + suffix;
+    }
+
+    function updateHaSensorExample() {
+      var example = document.getElementById('ha-sensor-example');
+      var tokens = haSensors
+        .filter(function (s) { return s.name; })
+        .map(function (s) { return '{ha_' + s.name + '}'; });
+      example.textContent = tokens.length
+        ? 'Example widget: ' + tokens.join(' ')
+        : 'Example widget: {ha_lr} {ha_br}';
+    }
+
+    function renderHaSensors() {
+      var container = document.getElementById('ha-sensors');
+      container.innerHTML = '';
+      haSensors.forEach(function (sensor, index) {
+        var row = document.createElement('div');
+        row.className = 'ha-sensor-row';
+
+        var nameInput = document.createElement('input');
+        nameInput.className = 'ha-sensor-name';
+        nameInput.type = 'text';
+        nameInput.placeholder = 'lr';
+        nameInput.maxLength = 12;
+        nameInput.value = sensor.name;
+        nameInput.spellcheck = false;
+        nameInput.setAttribute('aria-label', 'Sensor ' + (index + 1) + ' token name');
+        nameInput.oninput = function () {
+          haSensors[index].name = normalizeTokenName(nameInput.value);
+          updateHaSensorExample();
+        };
+
+        var entityInput = document.createElement('input');
+        entityInput.className = 'ha-sensor-entity';
+        entityInput.type = 'text';
+        entityInput.placeholder = 'sensor.living_room_temperature';
+        entityInput.value = sensor.entity;
+        entityInput.spellcheck = false;
+        entityInput.setAttribute('aria-label', 'Sensor ' + (index + 1) + ' entity ID');
+        entityInput.oninput = function () {
+          haSensors[index].entity = entityInput.value;
+        };
+
+        var removeBtn = document.createElement('button');
+        removeBtn.type = 'button';
+        removeBtn.className = 'ha-sensor-remove';
+        removeBtn.textContent = 'Remove';
+        removeBtn.onclick = function () {
+          haSensors.splice(index, 1);
+          renderHaSensors();
+        };
+
+        row.appendChild(nameInput);
+        row.appendChild(entityInput);
+        row.appendChild(removeBtn);
+        container.appendChild(row);
+      });
+
+      document.getElementById('ha-sensor-add').style.display =
+        haSensors.length >= MAX_HA_SENSORS ? 'none' : 'inline-block';
+      updateHaSensorExample();
+    }
+
+    function renderTokenPanel() {
+      var panel = document.getElementById('token-panel');
+      panel.innerHTML = '';
+      var groups = groupTokensByCategory(visibleTokens);
+      Object.keys(groups).sort(compareCategories).forEach(function (category) {
+        var groupEl = document.createElement('div');
+        var label = document.createElement('div');
+        label.className = 'token-group-label';
+        label.textContent = category;
+        groupEl.appendChild(label);
+
+        var grid = document.createElement('div');
+        grid.className = 'token-grid';
+        groups[category].sort(function (a, b) { return compareLabels(a.label, b.label); })
+          .forEach(function (token) {
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'token-button';
+            btn.textContent = token.label;
+            btn.title = 'Insert ' + token.token;
+            btn.onclick = function () { insertToken(token.token); };
+            grid.appendChild(btn);
+          });
+        groupEl.appendChild(grid);
+        panel.appendChild(groupEl);
+      });
+    }
+
+    function renderTokenReference() {
+      var container = document.getElementById('token-reference');
+      container.innerHTML = '';
+      var groups = groupTokensByCategory(visibleTokens);
+      Object.keys(groups).sort(compareCategories).forEach(function (category) {
+        var details = document.createElement('details');
+        var summary = document.createElement('summary');
+        summary.textContent = category;
+        if (isForkCategory(category)) {
+          var badge = document.createElement('span');
+          badge.className = 'fork-badge';
+          badge.textContent = 'fork';
+          summary.appendChild(badge);
+        }
+        details.appendChild(summary);
+
+        var list = document.createElement('ul');
+        groups[category].sort(function (a, b) { return compareLabels(a.label, b.label); })
+          .forEach(function (token) {
+            var li = document.createElement('li');
+            li.textContent = token.label + ' ';
+            var code = document.createElement('code');
+            code.textContent = token.token;
+            li.appendChild(code);
+            list.appendChild(li);
+          });
+        details.appendChild(list);
+        container.appendChild(details);
+      });
+    }
+
+    function renderWorkDays() {
+      var container = document.getElementById('work-days');
+      var workDays = parseIntSetting(settings.SETTING_WORK_DAYS, DEFAULT_WORK_DAYS);
+      container.innerHTML = '';
+      WEEKDAYS.forEach(function (day) {
+        var label = document.createElement('label');
+        label.className = 'work-day';
+        var checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.id = 'work-day-' + day.bit;
+        checkbox.checked = (workDays & (1 << day.bit)) !== 0;
+        checkbox.onchange = updateFbPreview;
+        label.appendChild(checkbox);
+        label.appendChild(document.createTextNode(day.label));
+        container.appendChild(label);
+      });
+    }
+
+    var customInput = document.getElementById('custom-format-input');
+    var charCounter = document.getElementById('char-counter');
+
+    function updateCharCounter() {
+      charCounter.textContent = customInput.value.length + ' / ' + MAX_WIDGET_FORMAT_LENGTH;
+    }
+
+    function insertToken(token) {
+      var start = customInput.selectionStart || customInput.value.length;
+      var end = customInput.selectionEnd || customInput.value.length;
+      var insertion = token + ' ';
+      var nextValue = (customInput.value.slice(0, start) + insertion + customInput.value.slice(end))
+        .slice(0, MAX_WIDGET_FORMAT_LENGTH);
+      var nextCursor = Math.min(start + insertion.length, MAX_WIDGET_FORMAT_LENGTH);
+      customInput.value = nextValue;
+      updateCharCounter();
+      customInput.focus();
+      customInput.setSelectionRange(nextCursor, nextCursor);
+    }
+
+    customInput.addEventListener('input', updateCharCounter);
+
+    document.getElementById('copy-format').onclick = function () {
+      var text = customInput.value.trim();
+      var btn = document.getElementById('copy-format');
+      function showCopied() {
+        btn.textContent = 'Copied!';
+        btn.classList.add('copied');
+        setTimeout(function () {
+          btn.textContent = 'Copy';
+          btn.classList.remove('copied');
+        }, 1500);
+      }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(showCopied).catch(function () {
+          fallbackCopy(text);
+          showCopied();
+        });
+      } else {
+        fallbackCopy(text);
+        showCopied();
+      }
+    };
+
+    function fallbackCopy(text) {
+      var textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.style.position = 'fixed';
+      textarea.style.left = '-9999px';
+      document.body.appendChild(textarea);
+      textarea.select();
+      try { document.execCommand('copy'); } catch (e) { /* ignore */ }
+      document.body.removeChild(textarea);
+    }
+
+    document.getElementById('ha-sensor-add').onclick = function () {
+      if (haSensors.length >= MAX_HA_SENSORS) return;
+      haSensors.push({ name: '', entity: '' });
+      renderHaSensors();
+    };
+
     function mergedSettings(baseSettings) {
       var next = {};
       Object.keys(baseSettings).forEach(function (key) {
@@ -152,7 +489,24 @@
       next.SETTING_HA_URL = document.getElementById('SETTING_HA_URL').value;
       next.SETTING_HA_TOKEN = document.getElementById('SETTING_HA_TOKEN').value;
       next.SETTING_INTERVALS_API_KEY = document.getElementById('SETTING_INTERVALS_API_KEY').value;
-      next.SETTING_WIDGET_LOWER_SECONDARY = document.getElementById('SETTING_WIDGET_LOWER_SECONDARY').value;
+      next.SETTING_HA_SENSORS = JSON.stringify(haSensors.slice(0, MAX_HA_SENSORS));
+      next.SETTING_WORK_SCHEDULE_ENABLED =
+        document.getElementById('SETTING_WORK_SCHEDULE_ENABLED').checked ? 1 : 0;
+      next.SETTING_HOLIDAY_MODE =
+        document.getElementById('SETTING_HOLIDAY_MODE').checked ? 1 : 0;
+      next.SETTING_WORK_START = timeToMinutes(
+        document.getElementById('SETTING_WORK_START').value, DEFAULT_WORK_START);
+      next.SETTING_WORK_END = timeToMinutes(
+        document.getElementById('SETTING_WORK_END').value, DEFAULT_WORK_END);
+      next.SETTING_WORK_DAYS = getWorkDaysFromUI();
+      next.SETTING_WORK_WIDGET_UPPER_SECONDARY =
+        document.getElementById('SETTING_WORK_WIDGET_UPPER_SECONDARY').value.trim();
+      next.SETTING_WORK_WIDGET_UPPER_PRIMARY =
+        document.getElementById('SETTING_WORK_WIDGET_UPPER_PRIMARY').value.trim();
+      next.SETTING_WORK_WIDGET_LOWER_PRIMARY =
+        document.getElementById('SETTING_WORK_WIDGET_LOWER_PRIMARY').value.trim();
+      next.SETTING_WORK_WIDGET_LOWER_SECONDARY =
+        document.getElementById('SETTING_WORK_WIDGET_LOWER_SECONDARY').value.trim();
       return next;
     }
 
@@ -162,24 +516,50 @@
       window.location.href = returnTo + encodeURIComponent(JSON.stringify(data));
     }
 
-    var settings = readSettings();
     document.getElementById('SETTING_HA_URL').value = settings.SETTING_HA_URL || '';
     document.getElementById('SETTING_HA_TOKEN').value = settings.SETTING_HA_TOKEN || '';
     document.getElementById('SETTING_INTERVALS_API_KEY').value = settings.SETTING_INTERVALS_API_KEY || '';
-    document.getElementById('SETTING_WIDGET_LOWER_SECONDARY').value =
-      settings.SETTING_WIDGET_LOWER_SECONDARY || '';
+    document.getElementById('SETTING_WORK_SCHEDULE_ENABLED').checked =
+      parseIntSetting(settings.SETTING_WORK_SCHEDULE_ENABLED, 0) === 1;
+    document.getElementById('SETTING_HOLIDAY_MODE').checked =
+      parseIntSetting(settings.SETTING_HOLIDAY_MODE, 0) === 1;
+    document.getElementById('SETTING_WORK_START').value =
+      minutesToTime(parseIntSetting(settings.SETTING_WORK_START, DEFAULT_WORK_START));
+    document.getElementById('SETTING_WORK_END').value =
+      minutesToTime(parseIntSetting(settings.SETTING_WORK_END, DEFAULT_WORK_END));
+    function hydrateWorkWidget(key, defaultValue) {
+      if (Object.prototype.hasOwnProperty.call(settings, key)) {
+        return settings[key] == null ? '' : String(settings[key]);
+      }
+      return defaultValue;
+    }
+    document.getElementById('SETTING_WORK_WIDGET_UPPER_SECONDARY').value =
+      hydrateWorkWidget('SETTING_WORK_WIDGET_UPPER_SECONDARY', '');
+    document.getElementById('SETTING_WORK_WIDGET_UPPER_PRIMARY').value =
+      hydrateWorkWidget('SETTING_WORK_WIDGET_UPPER_PRIMARY', '{fb_name}');
+    document.getElementById('SETTING_WORK_WIDGET_LOWER_PRIMARY').value =
+      hydrateWorkWidget('SETTING_WORK_WIDGET_LOWER_PRIMARY', '{fb_days_left}d');
+    document.getElementById('SETTING_WORK_WIDGET_LOWER_SECONDARY').value =
+      hydrateWorkWidget('SETTING_WORK_WIDGET_LOWER_SECONDARY', '');
+
+    renderHaSensors();
+    renderWorkDays();
+    renderTokenPanel();
+    renderTokenReference();
+    updateCharCounter();
+    updateFbPreview();
 
     document.getElementById('continue').onclick = function (event) {
       event.preventDefault();
       var params = readParams();
-      var watchInfo = readWatchInfo();
+      var currentWatchInfo = readWatchInfo();
       var fullConfigUri = readFullConfigUri();
       var nextSettings = mergedSettings(settings);
       var returnTo = params.get('return_to') || 'pebblejs://close#';
       var url = fullConfigUri;
       url += (url.indexOf('?') === -1 ? '?' : '&');
-      if (watchInfo) {
-        url += 'watchInfo=' + encodeURIComponent(JSON.stringify(watchInfo)) + '&';
+      if (currentWatchInfo) {
+        url += 'watchInfo=' + encodeURIComponent(JSON.stringify(currentWatchInfo)) + '&';
       }
       url += 'settings=' + encodeURIComponent(JSON.stringify(nextSettings));
       url += '&return_to=' + encodeURIComponent(returnTo);

@@ -1,0 +1,217 @@
+.token-panel {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.token-group-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #888;
+  margin-bottom: 6px;
+}
+
+.token-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.token-button {
+  padding: 6px 10px;
+  border: 1px solid #444;
+  border-radius: 6px;
+  background: #222;
+  color: #eee;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.token-button:hover {
+  background: #333;
+  border-color: #666;
+}
+
+.token-button:focus-visible {
+  outline: 2px solid #2d7ff9;
+  outline-offset: 1px;
+}
+
+.builder-row {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.builder-row input[type="text"] {
+  flex: 1;
+}
+
+.copy-button {
+  width: auto;
+  min-width: 72px;
+  padding: 10px 14px;
+  background: #333;
+  color: #fff;
+  border: 0;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.copy-button.copied {
+  background: #1a6b2e;
+}
+
+.char-counter {
+  font-size: 11px;
+  color: #666;
+  text-align: right;
+  margin-top: 4px;
+}
+
+.token-reference {
+  margin-top: 16px;
+}
+
+.token-reference details {
+  border: 1px solid #333;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  background: #1a1a1a;
+}
+
+.token-reference summary {
+  padding: 10px 12px;
+  cursor: pointer;
+  font-size: 13px;
+  color: #ccc;
+  list-style-position: inside;
+}
+
+.token-reference summary .fork-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: #2d4a7a;
+  color: #aac8ff;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.token-reference ul {
+  margin: 0;
+  padding: 0 12px 12px 28px;
+  font-size: 12px;
+  color: #aaa;
+  line-height: 1.6;
+}
+
+.token-reference li code {
+  margin-left: 4px;
+}
+
+.work-time-row {
+  display: flex;
+  gap: 12px;
+}
+
+.work-time-row label {
+  flex: 1;
+  margin-top: 0;
+}
+
+.work-days {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.work-day {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  color: #ccc;
+  cursor: pointer;
+}
+
+.work-day input {
+  width: auto;
+}
+
+.checkbox-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.checkbox-row input {
+  width: auto;
+  margin-top: 2px;
+}
+
+.checkbox-row label {
+  margin: 0;
+  flex: 1;
+}
+
+.ha-sensors {
+  margin-top: 8px;
+}
+
+.ha-sensor-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+  align-items: center;
+}
+
+.ha-sensor-name {
+  flex: 0 0 72px;
+}
+
+.ha-sensor-entity {
+  flex: 1;
+}
+
+.ha-sensor-remove,
+.ha-sensor-add {
+  width: auto;
+  padding: 8px 12px;
+  border: 1px solid #444;
+  border-radius: 8px;
+  background: #222;
+  color: #ccc;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.ha-sensor-add {
+  margin-top: 4px;
+}
+
+.fb-preview {
+  font-size: 12px;
+  color: #888;
+  margin-top: 8px;
+}
+
+.fb-preview strong {
+  color: #ccc;
+}
+
+.work-widget-input {
+  margin-bottom: 8px;
+}
+
+.hint-strong {
+  color: #aaa;
+}
